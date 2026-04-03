@@ -1,0 +1,455 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* ─── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+  --vault-bg:          #f4f1ff;
+  --vault-surface:     rgba(255,255,255,0.80);
+  --vault-surface-2:   rgba(255,255,255,0.60);
+  --vault-surface-3:   rgba(255,255,255,0.40);
+  --vault-border:      rgba(124,58,237,0.12);
+  --vault-border-glow: rgba(124,58,237,0.40);
+
+  --vault-gold:        #a16207;
+  --vault-gold-light:  #ca8a04;
+  --vault-gold-dim:    #78450a;
+
+  --vault-text:        #1e1a2e;
+  --vault-text-muted:  #64748b;
+  --vault-text-dim:    #94a3b8;
+
+  --vault-accent:      #7c3aed;
+  --vault-accent-2:    #9333ea;
+
+  /* MTG colors */
+  --mtg-white: #f9faf3;
+  --mtg-blue:  #0e68ab;
+  --mtg-black: #150b00;
+  --mtg-red:   #d3202a;
+  --mtg-green: #00733e;
+  --mtg-gold:  #d4af37;
+  --mtg-colorless: #b0b2b8;
+
+  /* Rarity */
+  --rarity-common:   #64748b;
+  --rarity-uncommon: #0ea5e9;
+  --rarity-rare:     #ca8a04;
+  --rarity-mythic:   #ea580c;
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 16px;
+  background: linear-gradient(135deg, #f0edff 0%, #eef2ff 45%, #fdf4ff 100%);
+  background-attachment: fixed;
+  color: var(--vault-text);
+  scroll-behavior: smooth;
+}
+
+h1, h2, h3, .display {
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  color: #1e1a2e;
+}
+
+::selection {
+  background: rgba(124,58,237,0.2);
+  color: #4c1d95;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.4); }
+
+/* ─── Glass Utility ──────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255,255,255,0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.85);
+}
+
+/* ─── Card Component ─────────────────────────────────────────────────────── */
+.vault-card {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(124,58,237,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.vault-card:hover {
+  border-color: rgba(124,58,237,0.18);
+  box-shadow: 0 6px 24px rgba(124,58,237,0.10), 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* ─── MTG Card Image ─────────────────────────────────────────────────────── */
+.mtg-card-img {
+  border-radius: 4.75% / 3.5%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.mtg-card-img:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+}
+
+/* ─── Rarity Badges ──────────────────────────────────────────────────────── */
+.rarity-common   { color: var(--rarity-common); }
+.rarity-uncommon { color: var(--rarity-uncommon); }
+.rarity-rare     { color: var(--rarity-rare); }
+.rarity-mythic   { color: var(--rarity-mythic); }
+
+/* ─── Mana Symbol Colors ──────────────────────────────────────────────────── */
+.mana-W { background: var(--mtg-white); color: #333; }
+.mana-U { background: var(--mtg-blue);  color: white; }
+.mana-B { background: var(--mtg-black); color: #ccc; border: 1px solid #333; }
+.mana-R { background: var(--mtg-red);   color: white; }
+.mana-G { background: var(--mtg-green); color: white; }
+.mana-C { background: var(--mtg-colorless); color: #333; }
+
+/* ─── Color Identity Pips ─────────────────────────────────────────────────── */
+.color-pip {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0,0,0,0.12);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 8px rgba(161,98,7,0.3); }
+  50%       { box-shadow: 0 0 20px rgba(161,98,7,0.6); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-up 0.3s ease forwards; }
+
+/* ─── Scanner ────────────────────────────────────────────────────────────── */
+.scanner-viewport {
+  position: relative;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.scanner-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PrimeVue — Light Glass Theme Overrides
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.p-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.375rem !important;
+  padding: 0.5rem 1rem !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  border-radius: 10px !important;
+  border: 1.5px solid transparent !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  background: linear-gradient(135deg, #7c3aed, #9333ea) !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.28) !important;
+  line-height: 1.4 !important;
+}
+.p-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6d28d9, #7c3aed) !important;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.38) !important;
+  transform: translateY(-1px) !important;
+}
+.p-button:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+.p-button:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Outlined variant */
+.p-button-outlined {
+  background: rgba(124,58,237,0.04) !important;
+  border-color: rgba(124,58,237,0.30) !important;
+  color: #7c3aed !important;
+  box-shadow: none !important;
+}
+.p-button-outlined:hover:not(:disabled) {
+  background: rgba(124,58,237,0.08) !important;
+  border-color: #7c3aed !important;
+  box-shadow: none !important;
+}
+
+/* Danger severity */
+.p-button-danger,
+[data-pc-name="button"][data-p-severity="danger"] {
+  background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.25) !important;
+  color: white !important;
+}
+.p-button-danger.p-button-outlined,
+[data-pc-name="button"][data-p-severity="danger"].p-button-outlined {
+  background: transparent !important;
+  border-color: rgba(220,38,38,0.35) !important;
+  color: #dc2626 !important;
+  box-shadow: none !important;
+}
+.p-button-danger.p-button-outlined:hover:not(:disabled),
+[data-pc-name="button"][data-p-severity="danger"].p-button-outlined:hover:not(:disabled) {
+  background: rgba(220,38,38,0.06) !important;
+  border-color: #dc2626 !important;
+}
+
+/* Loading spinner in buttons */
+.p-button-loading-icon {
+  animation: spin 0.6s linear infinite !important;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Inputs ───────────────────────────────────────────────────────────────── */
+.p-inputtext {
+  background: rgba(255,255,255,0.85) !important;
+  border: 1.5px solid rgba(124,58,237,0.14) !important;
+  border-radius: 10px !important;
+  color: #1e1a2e !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  transition: all 0.15s ease !important;
+  outline: none !important;
+  width: 100% !important;
+}
+.p-inputtext:focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+  background: white !important;
+}
+.p-inputtext::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* ── IconField ────────────────────────────────────────────────────────────── */
+.p-iconfield {
+  position: relative !important;
+}
+.p-inputicon {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  left: 0.75rem !important;
+  color: #94a3b8 !important;
+  pointer-events: none !important;
+  display: flex !important;
+  align-items: center !important;
+}
+.p-iconfield .p-inputtext {
+  padding-left: 2.25rem !important;
+}
+
+/* ── Select / Dropdown ────────────────────────────────────────────────────── */
+.p-select {
+  background: rgba(255,255,255,0.85) !important;
+  border: 1.5px solid rgba(124,58,237,0.14) !important;
+  border-radius: 10px !important;
+  transition: all 0.15s ease !important;
+}
+.p-select:focus-within,
+.p-select.p-focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+}
+.p-select-label {
+  color: #1e1a2e !important;
+  font-size: 0.875rem !important;
+  padding: 0.5rem 0.75rem !important;
+}
+.p-select-overlay,
+.p-dropdown-panel {
+  background: white !important;
+  border: 1px solid rgba(124,58,237,0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(124,58,237,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
+  overflow: hidden !important;
+  margin-top: 4px !important;
+}
+.p-select-option,
+.p-dropdown-item {
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  color: #1e1a2e !important;
+  transition: background 0.1s !important;
+}
+.p-select-option:hover,
+.p-dropdown-item:hover {
+  background: rgba(124,58,237,0.06) !important;
+}
+.p-select-option[aria-selected="true"],
+.p-dropdown-item.p-highlight {
+  background: rgba(124,58,237,0.10) !important;
+  color: #7c3aed !important;
+  font-weight: 500 !important;
+}
+
+/* ── Textarea ─────────────────────────────────────────────────────────────── */
+.p-textarea {
+  background: rgba(255,255,255,0.85) !important;
+  border: 1.5px solid rgba(124,58,237,0.14) !important;
+  border-radius: 10px !important;
+  color: #1e1a2e !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.875rem !important;
+}
+.p-textarea:focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+  outline: none !important;
+}
+
+/* ── Dialog ───────────────────────────────────────────────────────────────── */
+.p-dialog {
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,0.9) !important;
+  box-shadow: 0 32px 80px rgba(124,58,237,0.16), 0 8px 24px rgba(0,0,0,0.08) !important;
+  background: rgba(255,255,255,0.95) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  overflow: hidden !important;
+}
+.p-dialog-header {
+  background: transparent !important;
+  padding: 1.25rem 1.5rem 1rem !important;
+  color: #1e1a2e !important;
+  font-family: 'Cinzel', serif !important;
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid rgba(124,58,237,0.08) !important;
+}
+.p-dialog-header-icon {
+  color: #64748b !important;
+  border-radius: 8px !important;
+  width: 2rem !important;
+  height: 2rem !important;
+}
+.p-dialog-header-icon:hover {
+  background: rgba(124,58,237,0.08) !important;
+  color: #7c3aed !important;
+}
+.p-dialog-content {
+  background: transparent !important;
+  padding: 1.25rem 1.5rem !important;
+  color: #1e1a2e !important;
+}
+
+/* ── Drawer ───────────────────────────────────────────────────────────────── */
+.p-drawer {
+  background: rgba(255,255,255,0.96) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-left: 1px solid rgba(124,58,237,0.10) !important;
+  box-shadow: -16px 0 48px rgba(124,58,237,0.10) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  /* The mask uses alignItems:center — override so drawer fills full height */
+  align-self: stretch !important;
+  height: 100% !important;
+}
+.p-drawer-header {
+  background: transparent !important;
+  padding: 1.25rem 1.5rem !important;
+  border-bottom: 1px solid rgba(124,58,237,0.08) !important;
+  flex-shrink: 0 !important;
+}
+.p-drawer-content,
+[data-pc-name="drawer"] [data-pc-section="content"] {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding: 0 !important;
+}
+
+/* Ensure drawer root is a proper bounded flex column */
+[data-pc-name="drawer"] {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100dvh !important;
+  max-height: 100vh !important;
+}
+[data-pc-name="drawer"] [data-pc-section="header"] {
+  flex-shrink: 0 !important;
+}
+
+/* ── Paginator ────────────────────────────────────────────────────────────── */
+.p-paginator {
+  background: transparent !important;
+  padding: 0.75rem 0 !important;
+  gap: 0.25rem !important;
+}
+.p-paginator-page,
+.p-paginator-prev,
+.p-paginator-next,
+.p-paginator-first,
+.p-paginator-last {
+  border-radius: 8px !important;
+  min-width: 2rem !important;
+  height: 2rem !important;
+  font-size: 0.875rem !important;
+  color: #64748b !important;
+  border: none !important;
+  background: transparent !important;
+  transition: all 0.15s !important;
+}
+.p-paginator-page:hover,
+.p-paginator-prev:hover,
+.p-paginator-next:hover {
+  background: rgba(124,58,237,0.08) !important;
+  color: #7c3aed !important;
+}
+.p-paginator-page.p-highlight,
+[data-p-active="true"].p-paginator-page {
+  background: linear-gradient(135deg, #7c3aed, #9333ea) !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.30) !important;
+}
+
+/* ── ProgressBar ──────────────────────────────────────────────────────────── */
+.p-progressbar {
+  background: rgba(124,58,237,0.10) !important;
+  border-radius: 99px !important;
+  height: 8px !important;
+  overflow: hidden !important;
+}
+.p-progressbar-value {
+  background: linear-gradient(90deg, #7c3aed, #9333ea) !important;
+  border-radius: 99px !important;
+  transition: width 0.4s ease !important;
+}
+
+/* ── Overlay mask ─────────────────────────────────────────────────────────── */
+.p-overlay-mask {
+  background: rgba(15,10,30,0.35) !important;
+  backdrop-filter: blur(4px) !important;
+}
