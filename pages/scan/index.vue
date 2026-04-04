@@ -187,7 +187,12 @@ const batchQueue = ref<BatchItem[]>([])
 
 onMounted(async () => {
   if (videoRef.value && canvasRef.value) {
-    await scanner.init(videoRef.value, canvasRef.value)
+    try {
+      await scanner.init(videoRef.value, canvasRef.value)
+    } catch (e) {
+      // error is already stored in scanner.status.error — just prevent Vue from
+      // treating it as an unhandled mounted-hook exception
+    }
   }
 })
 

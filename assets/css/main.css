@@ -171,19 +171,49 @@ h1, h2, h3, .display {
   border-radius: 10px !important;
   border: 1.5px solid transparent !important;
   cursor: pointer !important;
-  transition: all 0.15s ease !important;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease !important;
   background: linear-gradient(135deg, #7c3aed, #9333ea) !important;
   color: white !important;
   box-shadow: 0 2px 8px rgba(124,58,237,0.28) !important;
   line-height: 1.4 !important;
+  /* Contain ripple effect */
+  position: relative !important;
+  overflow: hidden !important;
+  /* Prevent any scale transforms from PrimeVue base styles */
+  transform: none !important;
 }
 .p-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #6d28d9, #7c3aed) !important;
   box-shadow: 0 4px 16px rgba(124,58,237,0.38) !important;
   transform: translateY(-1px) !important;
 }
+.p-button:focus,
+.p-button:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.25) !important;
+  transform: none !important;
+}
 .p-button:active:not(:disabled) {
   transform: translateY(0) !important;
+  box-shadow: 0 1px 4px rgba(124,58,237,0.20) !important;
+}
+
+/* Ripple ink — must be absolute so it doesn't participate in flex layout */
+.p-button .p-ink {
+  display: block !important;
+  position: absolute !important;
+  border-radius: 50% !important;
+  transform: scale(0) !important;
+  pointer-events: none !important;
+  background: rgba(255, 255, 255, 0.35) !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.p-button .p-ink.p-ink-active {
+  animation: p-ripple 0.5s linear !important;
+}
+@keyframes p-ripple {
+  100% { opacity: 0; transform: scale(2.5); }
 }
 .p-button:disabled {
   opacity: 0.45 !important;
@@ -452,4 +482,147 @@ h1, h2, h3, .display {
 .p-overlay-mask {
   background: rgba(15,10,30,0.35) !important;
   backdrop-filter: blur(4px) !important;
+}
+
+/* ── AutoComplete ─────────────────────────────────────────────────────────── */
+.p-autocomplete {
+  width: 100%;
+}
+.p-autocomplete-input {
+  width: 100% !important;
+  background: rgba(255,255,255,0.72) !important;
+  border: 1.5px solid rgba(124,58,237,0.18) !important;
+  border-radius: 10px !important;
+  color: #1e1a2e !important;
+  padding: 0.5rem 0.875rem !important;
+  font-size: 0.875rem !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.p-autocomplete-input:focus {
+  outline: none !important;
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+}
+.p-autocomplete-overlay {
+  background: rgba(255,255,255,0.97) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(124,58,237,0.15) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(124,58,237,0.14) !important;
+  padding: 0.375rem !important;
+  margin-top: 6px !important;
+  max-height: 380px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  /* Match trigger width but don't exceed viewport */
+  min-width: 0 !important;
+}
+.p-autocomplete-list {
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+}
+.p-autocomplete-option {
+  padding: 0.5rem !important;
+  border-radius: 10px !important;
+  font-size: 0.875rem !important;
+  color: #1e1a2e !important;
+  cursor: pointer !important;
+  transition: background 0.15s !important;
+  overflow: hidden !important;
+}
+.p-autocomplete-option:hover,
+.p-autocomplete-option[data-p-focused="true"] {
+  background: rgba(124,58,237,0.07) !important;
+}
+.p-autocomplete-option[data-p-selected="true"] {
+  background: rgba(124,58,237,0.13) !important;
+  font-weight: 600 !important;
+}
+
+/* ── InputNumber ──────────────────────────────────────────────────────────── */
+.p-inputnumber {
+  width: 100%;
+  display: flex !important;
+}
+.p-inputnumber-input {
+  width: 100% !important;
+  background: rgba(255,255,255,0.72) !important;
+  border: 1.5px solid rgba(124,58,237,0.18) !important;
+  border-radius: 10px !important;
+  color: #1e1a2e !important;
+  padding: 0.5rem 0.875rem !important;
+  font-size: 0.875rem !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.p-inputnumber-input:focus {
+  outline: none !important;
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+}
+.p-inputnumber-button {
+  background: rgba(124,58,237,0.08) !important;
+  border: 1.5px solid rgba(124,58,237,0.18) !important;
+  color: #7c3aed !important;
+  width: 2rem !important;
+  transition: background 0.15s !important;
+}
+.p-inputnumber-button:hover {
+  background: rgba(124,58,237,0.18) !important;
+}
+.p-inputnumber-button-up {
+  border-radius: 0 10px 0 0 !important;
+  border-left: none !important;
+  border-bottom-width: 0.75px !important;
+}
+.p-inputnumber-button-down {
+  border-radius: 0 0 10px 0 !important;
+  border-left: none !important;
+  border-top-width: 0.75px !important;
+}
+
+/* ── ToggleSwitch ─────────────────────────────────────────────────────────── */
+.p-toggleswitch {
+  display: inline-flex !important;
+  position: relative !important;
+  width: 2.75rem !important;
+  height: 1.5rem !important;
+}
+.p-toggleswitch-input {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  z-index: 1 !important;
+}
+.p-toggleswitch-slider {
+  background: #d1d5db !important;
+  border-radius: 999px !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  transition: background 0.2s !important;
+  cursor: pointer !important;
+}
+.p-toggleswitch-slider::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 3px !important;
+  left: 3px !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  background: #ffffff !important;
+  border-radius: 50% !important;
+  transition: transform 0.2s !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+}
+.p-toggleswitch[data-p-checked="true"] .p-toggleswitch-slider {
+  background: linear-gradient(135deg, #7c3aed, #9333ea) !important;
+}
+.p-toggleswitch[data-p-checked="true"] .p-toggleswitch-slider::after {
+  transform: translateX(1.25rem) !important;
 }

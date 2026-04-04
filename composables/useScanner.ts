@@ -47,19 +47,23 @@ export function useScanner() {
     try {
       await Promise.all([loadTesseract(), loadTFModels()])
       status.isReady = true
-    } catch (e: any) {
-      status.error = `Init failed: ${e.message}`
+    } catch (e) {
+      status.error = `Init failed: ${e instanceof Error ? e.message : String(e)}`
     }
   }
 
   async function loadTesseract() {
-    // Lazy import Tesseract so it doesn't block page load
+    // Lazy import — Vite pre-bundles this (CJS→ESM) so `require` is never
+    // exposed to the browser directly.
     const { createWorker } = await import('tesseract.js')
+    // worker.min.js copied to public/ so it's served at a known URL with the
+    // correct JS MIME type. workerBlobURL:false loads it directly as a Worker.
     worker = await createWorker('eng', 1, {
-      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+      workerPath: '/tesseract-worker.min.js',
       langPath: 'https://tessdata.projectnaptha.com/4.0.0',
       corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
-      logger: () => {}, // silence
+      workerBlobURL: false,
+      logger: () => {},
     })
     // Tune for card name bars: single line, large text
     await worker.setParameters({

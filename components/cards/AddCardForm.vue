@@ -6,11 +6,31 @@
       <AutoComplete
         v-model="searchQuery"
         :suggestions="suggestions"
+        option-label="name"
         placeholder="Search Scryfall…"
         class="w-full"
         @complete="onComplete"
         @item-select="onSelect"
-      />
+      >
+        <template #option="{ option }">
+          <div class="flex items-center gap-3 py-1">
+            <img
+              v-if="option.image_uris?.small ?? option.card_faces?.[0]?.image_uris?.small"
+              :src="option.image_uris?.small ?? option.card_faces?.[0]?.image_uris?.small"
+              :alt="option.name"
+              class="w-10 h-14 rounded object-cover shrink-0"
+              loading="lazy"
+            />
+            <div v-else class="w-10 h-14 rounded bg-vault-surface3 shrink-0 flex items-center justify-center text-vault-dim text-xs">?</div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-vault-text truncate">{{ option.name }}</p>
+              <p class="text-xs text-vault-muted truncate">{{ option.type_line }}</p>
+              <p class="text-xs text-vault-dim truncate">{{ option.set_name }}</p>
+            </div>
+            <span v-if="option.prices?.usd" class="text-xs text-vault-gold font-medium shrink-0">${{ option.prices.usd }}</span>
+          </div>
+        </template>
+      </AutoComplete>
     </div>
 
     <!-- Preview -->
@@ -85,11 +105,11 @@ import type { ScryfallCard, CardCondition, CardLanguage } from '~/types'
 
 const emit = defineEmits<{ saved: []; close: [] }>()
 
-const { autocomplete, getCardByName } = useScryfall()
+const { autocompleteCards } = useScryfall()
 const { addCard } = useCollection()
 
-const searchQuery = ref('')
-const suggestions = ref<string[]>([])
+const searchQuery = ref<string | ScryfallCard>('')
+const suggestions = ref<ScryfallCard[]>([])
 const selectedCard = ref<ScryfallCard | null>(null)
 
 const form = reactive({
@@ -122,11 +142,12 @@ const LANGUAGES = [
 ]
 
 async function onComplete(event: { query: string }) {
-  suggestions.value = await autocomplete(event.query)
+  suggestions.value = await autocompleteCards(event.query)
 }
 
-async function onSelect(event: { value: string }) {
-  selectedCard.value = await getCardByName(event.value)
+function onSelect(event: { value: ScryfallCard }) {
+  selectedCard.value = event.value
+  searchQuery.value = event.value.name
 }
 
 async function save() {

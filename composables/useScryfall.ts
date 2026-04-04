@@ -149,6 +149,34 @@ export function useScryfall() {
     }
   }
 
+  // Returns full card objects for rich autocomplete dropdowns
+  async function autocompleteCards(query: string): Promise<ScryfallCard[]> {
+    if (query.length < 2) return []
+
+    const local = await db.scryfallCards
+      .where('name')
+      .startsWithIgnoreCase(query)
+      .limit(8)
+      .toArray()
+
+    if (local.length >= 5) return local
+
+    try {
+      const res = await throttledFetch(
+        `${BASE}/cards/search?q=name%3A${encodeURIComponent(query)}&order=name&unique=names`
+      )
+      if (!res.ok) return local
+      const data = await res.json()
+      const cards: ScryfallCard[] = (data.data ?? []).slice(0, 8)
+      await bulkUpsertScryfallCards(cards)
+      // Merge with local to avoid duplicates
+      const seen = new Set(local.map(c => c.name.toLowerCase()))
+      return [...local, ...cards.filter(c => !seen.has(c.name.toLowerCase()))].slice(0, 8)
+    } catch {
+      return local
+    }
+  }
+
   // ── Bulk Data Import ─────────────────────────────────────────────────────
 
   interface BulkProgress {
@@ -252,6 +280,7 @@ export function useScryfall() {
     searchCards,
     localSearch,
     autocomplete,
+    autocompleteCards,
     importBulkData,
     getBulkMeta,
     getAllSets,

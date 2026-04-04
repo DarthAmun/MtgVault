@@ -98,7 +98,9 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: {
-      exclude: ['tesseract.js'],
+      // tesseract.js is CJS — let esbuild pre-bundle it so the browser
+      // never sees bare `require()` calls.
+      include: ['tesseract.js'],
     },
     worker: {
       format: 'es',
