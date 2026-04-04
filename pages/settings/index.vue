@@ -10,8 +10,7 @@
       <div>
         <h2 class="font-display text-lg text-vault-text">Offline Card Database</h2>
         <p class="text-vault-muted text-sm mt-1">
-          Download the complete Scryfall database for fast offline search and card recognition.
-          Required for the best scanner experience.
+          Download the complete Scryfall database for fast offline search and autocomplete.
         </p>
       </div>
 

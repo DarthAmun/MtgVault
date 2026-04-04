@@ -223,31 +223,6 @@ export interface CustomCard {
   updatedAt: string
 }
 
-// ─── Scanner Types ──────────────────────────────────────────────────────────
-
-export interface ScanResult {
-  confidence: number
-  candidates: ScanCandidate[]
-  rawText?: string
-  processingMs: number
-}
-
-export interface ScanCandidate {
-  scryfallId: string
-  name: string
-  set: string
-  confidence: number
-  imageUri?: string
-}
-
-export interface ScannerState {
-  isScanning: boolean
-  isProcessing: boolean
-  lastResult: ScanResult | null
-  error: string | null
-  fps: number
-}
-
 // ─── Stats Types ────────────────────────────────────────────────────────────
 
 export interface CollectionStats {

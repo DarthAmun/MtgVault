@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type { CollectionEntry, Deck, CustomCard, ScryfallCard } from '~/types'
+import type { PHashEntry } from '~/composables/usePHash'
 
 export class MTGVaultDatabase extends Dexie {
   // App tables
@@ -10,41 +11,40 @@ export class MTGVaultDatabase extends Dexie {
   // Scryfall cache — every field from API stored flat for fast local queries
   scryfallCards!: Table<ScryfallCard, string>
 
-  // Bulk data metadata
+  // pHash entries — one row per card printing, used for art-based recognition
+  pHashEntries!: Table<PHashEntry, string>
+
+  // Bulk data metadata + search buffer blobs
   syncMeta!: Table<{ key: string; value: string | number }, string>
 
   constructor() {
     super('MTGVault')
 
     this.version(1).stores({
-      // Collection: index on scryfallId, tags, deckIds, storage, isProxy
       collection: 'id, scryfallId, condition, language, *tags, *deckIds, storage, isProxy, isCustom, addedAt',
-
-      // Decks: index on format, tags, colorIdentity
       decks: 'id, name, format, *tags, *colorIdentity, createdAt, updatedAt, isArchived',
-
-      // Custom cards
       customCards: 'id, name, *colors, *colorIdentity, rarity, createdAt',
-
-      // Scryfall card cache — rich indexes for search & filter
       scryfallCards: [
-        'id',
-        'oracle_id',
-        'name',
-        'set',
-        'set_name',
-        'type_line',
-        'rarity',
-        'cmc',
-        '*colors',
-        '*color_identity',
-        '*keywords',
-        'collector_number',
-        'artist',
-        'released_at',
-        'layout',
+        'id', 'oracle_id', 'name', 'set', 'set_name', 'type_line', 'rarity',
+        'cmc', '*colors', '*color_identity', '*keywords', 'collector_number',
+        'artist', 'released_at', 'layout',
       ].join(', '),
+      syncMeta: 'key',
+    })
 
+    // Version 2: adds pHashEntries table
+    this.version(2).stores({
+      collection: 'id, scryfallId, condition, language, *tags, *deckIds, storage, isProxy, isCustom, addedAt',
+      decks: 'id, name, format, *tags, *colorIdentity, createdAt, updatedAt, isArchived',
+      customCards: 'id, name, *colors, *colorIdentity, rarity, createdAt',
+      scryfallCards: [
+        'id', 'oracle_id', 'name', 'set', 'set_name', 'type_line', 'rarity',
+        'cmc', '*colors', '*color_identity', '*keywords', 'collector_number',
+        'artist', 'released_at', 'layout',
+      ].join(', '),
+      // scryfallId is the primary key; no extra indexes needed —
+      // the binary search buffer in syncMeta is used for fast scan-time lookup
+      pHashEntries: 'scryfallId',
       syncMeta: 'key',
     })
   }

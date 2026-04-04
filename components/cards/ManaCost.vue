@@ -12,6 +12,7 @@
         :src="svgSrc(symbol)"
         :alt="symbol"
         class="w-3.5 h-3.5"
+        style="filter: brightness(0) invert(1);"
         draggable="false"
       />
       <span v-else class="text-[9px] font-bold leading-none">{{ symbolText(symbol) }}</span>

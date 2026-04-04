@@ -1,6 +1,10 @@
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
+  // PWA/SPA — no server-side rendering. IndexedDB, canvas, and camera APIs
+  // are browser-only. SSR would crash on all of them.
+  ssr: false,
+
   devtools: { enabled: true },
 
   modules: [
@@ -97,11 +101,6 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   vite: {
-    optimizeDeps: {
-      // tesseract.js is CJS — let esbuild pre-bundle it so the browser
-      // never sees bare `require()` calls.
-      include: ['tesseract.js'],
-    },
     worker: {
       format: 'es',
     },

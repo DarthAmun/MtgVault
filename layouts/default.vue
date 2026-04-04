@@ -28,12 +28,12 @@
 
         <!-- Nav items -->
         <nav class="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-          <NavItem to="/"           icon="fa-home"      label="Dashboard"  :collapsed="collapsed" />
-          <NavItem to="/collection" icon="fa-th-large"  label="Collection" :collapsed="collapsed" />
-          <NavItem to="/decks"      icon="fa-book"      label="Decks"      :collapsed="collapsed" />
-          <NavItem to="/scan"       icon="fa-camera"    label="Scanner"    :collapsed="collapsed" badge="NEW" />
-          <NavItem to="/stats"      icon="fa-chart-bar" label="Stats"      :collapsed="collapsed" />
-          <NavItem to="/proxies"    icon="fa-print"     label="Proxies"    :collapsed="collapsed" />
+          <NavItem to="/"           icon="fa-home"        label="Dashboard"   :collapsed="collapsed" />
+          <NavItem to="/collection" icon="fa-th-large"    label="Collection"  :collapsed="collapsed" />
+          <NavItem to="/decks"      icon="fa-book"        label="Decks"       :collapsed="collapsed" />
+          <NavItem to="/scan"       icon="fa-file-import" label="Bulk Import" :collapsed="collapsed" />
+          <NavItem to="/stats"      icon="fa-chart-bar"   label="Stats"       :collapsed="collapsed" />
+          <NavItem to="/proxies"    icon="fa-print"       label="Proxies"     :collapsed="collapsed" />
         </nav>
 
         <!-- Settings + collapse -->

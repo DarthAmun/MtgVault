@@ -302,10 +302,14 @@ h1, h2, h3, .display {
 
 /* ── Select / Dropdown ────────────────────────────────────────────────────── */
 .p-select {
+  display: inline-flex !important;
+  align-items: center !important;
   background: rgba(255,255,255,0.85) !important;
   border: 1.5px solid rgba(124,58,237,0.14) !important;
   border-radius: 10px !important;
+  cursor: pointer !important;
   transition: all 0.15s ease !important;
+  min-height: 2.25rem !important;
 }
 .p-select:focus-within,
 .p-select.p-focus {
@@ -313,9 +317,21 @@ h1, h2, h3, .display {
   box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
 }
 .p-select-label {
+  flex: 1 !important;
   color: #1e1a2e !important;
   font-size: 0.875rem !important;
   padding: 0.5rem 0.75rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.p-select-dropdown {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  width: 2rem !important;
+  color: #7c3aed !important;
 }
 .p-select-overlay,
 .p-dropdown-panel {
@@ -352,6 +368,7 @@ h1, h2, h3, .display {
   color: #1e1a2e !important;
   font-family: 'Inter', system-ui, sans-serif !important;
   font-size: 0.875rem !important;
+  padding: 0.5rem 0.875rem !important;
 }
 .p-textarea:focus {
   border-color: #7c3aed !important;

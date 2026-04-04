@@ -86,6 +86,18 @@
     <Drawer v-model:visible="showDetail" position="right" class="w-full max-w-md">
       <CardDetailPanel v-if="selectedItem" :entry="selectedItem.entry" :card="selectedItem.card" />
     </Drawer>
+
+    <!-- Edit Dialog -->
+    <Dialog v-model:visible="showEdit" modal header="Edit Card" class="w-full max-w-lg">
+      <EditCardForm
+        v-if="editItem"
+        :entry="editItem.entry"
+        :card="editItem.card"
+        @saved="onEditSaved"
+        @deleted="onEditSaved"
+        @close="showEdit = false"
+      />
+    </Dialog>
   </div>
 </template>
 
@@ -106,7 +118,9 @@ const pageSize = 48
 const showAddCard = ref(false)
 const showImport = ref(false)
 const showDetail = ref(false)
+const showEdit = ref(false)
 const selectedItem = ref<CardItem | null>(null)
+const editItem = ref<CardItem | null>(null)
 
 const totalCount = computed(() => allItems.value.reduce((s, i) => s + i.entry.quantity + (i.entry.foilQuantity ?? 0), 0))
 const uniqueCount = computed(() => allItems.value.length)
@@ -154,7 +168,13 @@ function selectCard(item: CardItem) {
 }
 
 function editEntry(item: CardItem) {
-  // TODO: open edit dialog
+  editItem.value = item
+  showEdit.value = true
+}
+
+async function onEditSaved() {
+  showEdit.value = false
+  await load()
 }
 
 async function onCardSaved() {
