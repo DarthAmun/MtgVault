@@ -36,10 +36,33 @@ export function useDecks() {
   }
 
   async function getById(id: string): Promise<Deck | null> {
-    return db.decks.get(id) ?? null
+    return (await db.decks.get(id)) ?? null
   }
 
   // ── Card Management ───────────────────────────────────────────────────────
+
+  /**
+   * Find the best collection entry to link to this deck card.
+   * Prefers exact scryfallId match; falls back to any printing via oracle_id.
+   * Returns null if the card is not in the collection at all.
+   */
+  async function findCollectionEntry(scryfallId: string): Promise<string | null> {
+    // Try exact printing first
+    const exact = await db.collection.where('scryfallId').equals(scryfallId).first()
+    if (exact) return exact.id
+
+    // Try any printing via oracle_id
+    const sc = await db.scryfallCards.get(scryfallId)
+    if (sc?.oracle_id) {
+      const allPrintings = await db.scryfallCards
+        .where('oracle_id').equals(sc.oracle_id).toArray()
+      for (const printing of allPrintings) {
+        const entry = await db.collection.where('scryfallId').equals(printing.id).first()
+        if (entry) return entry.id
+      }
+    }
+    return null
+  }
 
   async function addCardToDeck(
     deckId: string,
@@ -47,6 +70,16 @@ export function useDecks() {
   ): Promise<void> {
     const deck = await db.decks.get(deckId)
     if (!deck) return
+
+    // Find collection entry to link
+    const collectionEntryId = card.collectionEntryId ?? await findCollectionEntry(card.scryfallId)
+    const notOwned = !collectionEntryId
+
+    const enriched: DeckCard = {
+      ...card,
+      collectionEntryId: collectionEntryId ?? undefined,
+      notOwned,
+    }
 
     const existing = deck.cards.find(
       c => c.scryfallId === card.scryfallId && c.isSideboard === card.isSideboard
@@ -58,13 +91,24 @@ export function useDecks() {
             ? { ...c, quantity: c.quantity + card.quantity }
             : c
         )
-      : [...deck.cards, card]
+      : [...deck.cards, enriched]
 
     await db.decks.update(deckId, {
       cards,
       colorIdentity: await computeColorIdentity(cards),
       updatedAt: new Date().toISOString(),
     })
+
+    // Update collection entry's deckIds
+    if (collectionEntryId && !existing) {
+      const entry = await db.collection.get(collectionEntryId)
+      if (entry && !entry.deckIds.includes(deckId)) {
+        await db.collection.update(collectionEntryId, {
+          deckIds: [...entry.deckIds, deckId],
+          updatedAt: new Date().toISOString(),
+        })
+      }
+    }
   }
 
   async function removeCardFromDeck(
@@ -74,6 +118,11 @@ export function useDecks() {
   ): Promise<void> {
     const deck = await db.decks.get(deckId)
     if (!deck) return
+
+    const removing = deck.cards.find(
+      c => c.scryfallId === scryfallId && c.isSideboard === isSideboard
+    )
+
     const cards = deck.cards.filter(
       c => !(c.scryfallId === scryfallId && c.isSideboard === isSideboard)
     )
@@ -82,6 +131,20 @@ export function useDecks() {
       colorIdentity: await computeColorIdentity(cards),
       updatedAt: new Date().toISOString(),
     })
+
+    // Clean up collection entry deckIds if no other deck card references it
+    if (removing?.collectionEntryId) {
+      const stillLinked = cards.some(c => c.collectionEntryId === removing.collectionEntryId)
+      if (!stillLinked) {
+        const entry = await db.collection.get(removing.collectionEntryId)
+        if (entry) {
+          await db.collection.update(removing.collectionEntryId, {
+            deckIds: entry.deckIds.filter(d => d !== deckId),
+            updatedAt: new Date().toISOString(),
+          })
+        }
+      }
+    }
   }
 
   async function setCardQuantity(
@@ -103,6 +166,19 @@ export function useDecks() {
     await db.decks.update(deckId, { cards, updatedAt: new Date().toISOString() })
   }
 
+  async function setCommander(
+    deckId: string,
+    scryfallId: string,
+    isCommander: boolean
+  ): Promise<void> {
+    const deck = await db.decks.get(deckId)
+    if (!deck) return
+    const cards = deck.cards.map(c =>
+      c.scryfallId === scryfallId ? { ...c, isCommander } : c
+    )
+    await db.decks.update(deckId, { cards, updatedAt: new Date().toISOString() })
+  }
+
   // ── Import ────────────────────────────────────────────────────────────────
 
   interface ParsedDeckLine {
@@ -112,6 +188,7 @@ export function useDecks() {
     collectorNumber?: string
     isSideboard: boolean
     isCommander: boolean
+    foil: boolean
   }
 
   function parseDeckList(text: string): ParsedDeckLine[] {
@@ -123,11 +200,24 @@ export function useDecks() {
     for (const raw of lines) {
       const line = raw.trim()
       if (!line) { inSideboard = false; continue }
-      if (/^(sideboard|side)/i.test(line)) { inSideboard = true; continue }
+
+      // Section headers
+      if (/^(sideboard|side\s*board)/i.test(line)) { inSideboard = true; continue }
       if (/^(commander|commanders)/i.test(line)) { inCommander = true; continue }
       if (/^(deck|maindeck|main)/i.test(line)) { inSideboard = false; inCommander = false; continue }
+      if (/^\/\//.test(line)) continue // comment lines
 
-      const match = line.match(/^(\d+)x?\s+(.+?)(?:\s+\(([A-Z0-9]+)\)(?:\s+(\d+))?)?$/)
+      // Detect foil marker (*F* or *f*) anywhere in the line
+      const foil = /\*[Ff]\*/.test(line)
+      const cleanLine = line.replace(/\s*\*[Ff]\*/g, '').trim()
+
+      // Detect SB: prefix for sideboard
+      const sbPrefix = /^SB:\s*/i.test(cleanLine)
+      const parseLine = sbPrefix ? cleanLine.replace(/^SB:\s*/i, '') : cleanLine
+      if (sbPrefix) inSideboard = true
+
+      // Format: [qty][x] Name [(SET)] [num]
+      const match = parseLine.match(/^(\d+)[xX]?\s+(.+?)(?:\s+\(([A-Za-z0-9]+)\)(?:\s+(\S+))?)?$/)
       if (!match) continue
 
       results.push({
@@ -135,8 +225,9 @@ export function useDecks() {
         name: match[2].trim(),
         set: match[3]?.toLowerCase(),
         collectorNumber: match[4],
-        isSideboard: inSideboard,
+        isSideboard: sbPrefix ? true : inSideboard,
         isCommander: inCommander,
+        foil,
       })
       inCommander = false // only first line in commander section
     }
@@ -154,7 +245,6 @@ export function useDecks() {
     const cardCount = mainDeck.reduce((s, c) => s + c.quantity, 0)
     const uniqueCount = mainDeck.length
 
-    // Fetch all scryfall data
     const scryfallCards = await Promise.all(
       deck.cards.map(c => db.scryfallCards.get(c.scryfallId))
     )
@@ -166,7 +256,6 @@ export function useDecks() {
     const manaCurve: Record<number, number> = {}
     let totalCmc = 0
     let cmcCount = 0
-
     for (const dc of mainDeck) {
       const sc = cardMap.get(dc.scryfallId)
       if (!sc || sc.type_line?.includes('Land')) continue
@@ -195,20 +284,42 @@ export function useDecks() {
       typeBreakdown[mainType] = (typeBreakdown[mainType] ?? 0) + dc.quantity
     }
 
-    // Missing from collection
+    // Missing from collection — match any printing of the same oracle card
     const missingCards: DeckCard[] = []
     for (const dc of deck.cards) {
-      const owned = await db.collection.where('scryfallId').equals(dc.scryfallId).toArray()
-      const totalOwned = owned.reduce((s, e) => s + e.quantity + (e.foilQuantity ?? 0), 0)
+      const sc = cardMap.get(dc.scryfallId)
+      let totalOwned = 0
+
+      if (sc?.oracle_id) {
+        const allPrintings = await db.scryfallCards
+          .where('oracle_id').equals(sc.oracle_id).toArray()
+        const printingIds = allPrintings.map(p => p.id)
+        const ownedEntries = await db.collection
+          .filter(e => printingIds.includes(e.scryfallId))
+          .toArray()
+        totalOwned = ownedEntries.reduce((s, e) => s + e.quantity + (e.foilQuantity ?? 0), 0)
+      } else {
+        const ownedEntries = await db.collection.where('scryfallId').equals(dc.scryfallId).toArray()
+        totalOwned = ownedEntries.reduce((s, e) => s + e.quantity + (e.foilQuantity ?? 0), 0)
+      }
+
       if (totalOwned < dc.quantity) missingCards.push(dc)
     }
 
-    // Estimated value
+    // Estimated value — skip cards marked notOwned (proxied/missing) and look up proxy status
     let estimatedValue = 0
     for (const dc of deck.cards) {
+      if (dc.notOwned) continue
       const sc = cardMap.get(dc.scryfallId)
       if (!sc) continue
-      const price = parseFloat(sc.prices?.usd ?? '0') || 0
+      // Check if the linked collection entry is a proxy
+      if (dc.collectionEntryId) {
+        const entry = await db.collection.get(dc.collectionEntryId)
+        if (entry?.isProxy) continue
+      }
+      const price = dc.foil
+        ? parseFloat(sc.prices?.usd_foil ?? sc.prices?.usd ?? '0') || 0
+        : parseFloat(sc.prices?.usd ?? '0') || 0
       estimatedValue += price * dc.quantity
     }
 
@@ -246,6 +357,7 @@ export function useDecks() {
     addCardToDeck,
     removeCardFromDeck,
     setCardQuantity,
+    setCommander,
     parseDeckList,
     getDeckStats,
   }

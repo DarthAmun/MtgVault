@@ -186,6 +186,8 @@ export interface DeckCard {
   isCommander: boolean
   isCompanion: boolean
   collectionEntryId?: string    // explicit link to owned copy
+  foil?: boolean                // this deck slot uses a foil copy
+  notOwned?: boolean            // card was added but not found in collection
 }
 
 export interface Deck {
@@ -219,6 +221,7 @@ export interface CustomCard {
   set?: string
   artist?: string
   imageDataUrl?: string         // base64 stored image
+  isFullCardImage?: boolean     // true = imageDataUrl is a full card scan, not a canvas render
   createdAt: string
   updatedAt: string
 }

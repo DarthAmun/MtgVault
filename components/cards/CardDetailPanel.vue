@@ -8,9 +8,15 @@
     />
 
     <!-- Name & set -->
-    <div>
-      <h2 class="font-display text-xl text-vault-gold">{{ card.name }}</h2>
-      <p class="text-vault-muted text-sm">{{ card.set_name }} · #{{ card.collector_number }}</p>
+    <div class="flex items-start justify-between gap-2">
+      <div>
+        <h2 class="font-display text-xl text-vault-gold">{{ card.name }}</h2>
+        <p class="text-vault-muted text-sm">{{ card.set_name }} · #{{ card.collector_number }}</p>
+      </div>
+      <NuxtLink
+        :to="`/collection/${card.id}`"
+        class="text-[11px] px-2 py-1 rounded bg-vault-accent/10 text-vault-accent hover:bg-vault-accent/20 transition-colors shrink-0 mt-1"
+      >All printings</NuxtLink>
     </div>
 
     <!-- Type & mana -->

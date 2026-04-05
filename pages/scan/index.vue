@@ -14,7 +14,8 @@
             One card per line. Supported formats:<br>
             <span class="font-mono text-vault-dim">4 Lightning Bolt</span> ·
             <span class="font-mono text-vault-dim">4x Lightning Bolt</span> ·
-            <span class="font-mono text-vault-dim">Lightning Bolt</span>
+            <span class="font-mono text-vault-dim">1 Baylen, the Haymaker (BLB) 205</span> ·
+            <span class="font-mono text-vault-dim">2 *F* Counterspell (MH2) 46</span>
           </p>
           <Textarea
             v-model="rawInput"
@@ -102,23 +103,47 @@
             <span class="text-sm font-medium text-vault-text">
               {{ parsed.length }} card{{ parsed.length !== 1 ? 's' : '' }} parsed
             </span>
-            <span class="text-xs text-vault-muted">
-              {{ parsed.reduce((s, r) => s + r.qty, 0) }} total copies
-            </span>
+            <div class="flex items-center gap-2">
+              <v-icon v-if="previewLoading" name="fa-spinner" class="animate-spin text-vault-muted text-xs" />
+              <span class="text-xs text-vault-muted">
+                {{ parsed.reduce((s, r) => s + r.qty, 0) }} total copies
+              </span>
+            </div>
           </div>
 
-          <div class="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+          <div class="space-y-1.5 max-h-[480px] overflow-y-auto pr-1">
             <div
               v-for="(row, i) in parsed"
               :key="i"
               class="flex items-center gap-3 p-2 rounded-lg"
-              :class="row.error ? 'bg-red-500/8 border border-red-500/20' : 'bg-vault-surface2'"
+              :class="row.error ? 'bg-red-500/10 border border-red-500/20' : 'bg-vault-surface2'"
             >
-              <span class="text-xs font-mono font-bold text-vault-accent w-6 text-right shrink-0">{{ row.qty }}×</span>
-              <span class="flex-1 text-sm truncate" :class="row.error ? 'text-red-400' : 'text-vault-text'">
-                {{ row.name }}
-              </span>
-              <span v-if="row.error" class="text-xs text-red-400/70 shrink-0">{{ row.error }}</span>
+              <!-- Thumbnail -->
+              <div class="w-9 h-12 rounded shrink-0 overflow-hidden bg-vault-surface3 flex items-center justify-center">
+                <img
+                  v-if="row.imageUri"
+                  :src="row.imageUri"
+                  :alt="row.name"
+                  class="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <v-icon v-else-if="row.resolving" name="fa-spinner" class="animate-spin text-vault-dim text-xs" />
+                <v-icon v-else-if="row.error" name="fa-times" class="text-red-400 text-xs" />
+                <v-icon v-else name="fa-image" class="text-vault-dim text-xs" />
+              </div>
+
+              <span class="text-xs font-mono font-bold text-vault-accent w-5 text-right shrink-0">{{ row.qty }}×</span>
+
+              <div class="flex-1 min-w-0">
+                <p class="text-sm truncate" :class="row.error ? 'text-red-400' : 'text-vault-text'">
+                  {{ row.name }}
+                  <span v-if="row.foil" class="text-[10px] text-vault-gold ml-1">FOIL</span>
+                </p>
+                <p class="text-[11px] text-vault-dim font-mono">
+                  <span v-if="row.set">({{ row.set.toUpperCase() }}) {{ row.collectorNumber }}</span>
+                  <span v-if="row.error" class="text-red-400/80 ml-1">· {{ row.error }}</span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -138,7 +163,7 @@ import { useScryfall } from '~/composables/useScryfall'
 import { useCollection } from '~/composables/useCollection'
 import type { CardCondition } from '~/types'
 
-const { getCardByName } = useScryfall()
+const { localGetCardByName, localGetCardBySetAndNumber } = useScryfall()
 const { addCard } = useCollection()
 
 const rawInput = ref('')
@@ -152,10 +177,17 @@ const summary = ref<{ added: number; notFound: number; notFoundNames: string[] }
 interface ParsedRow {
   qty: number
   name: string
+  set?: string
+  collectorNumber?: string
+  foil?: boolean
   error?: string
+  imageUri?: string
+  scryfallId?: string
+  resolving?: boolean
 }
 
 const parsed = ref<ParsedRow[]>([])
+const previewLoading = ref(false)
 
 const CONDITIONS = [
   { label: 'NM', value: 'NM' },
@@ -165,24 +197,68 @@ const CONDITIONS = [
   { label: 'DMG', value: 'DMG' },
 ]
 
-function parseList() {
+function parseLine(line: string): ParsedRow | null {
+  if (/^[/#]/.test(line)) return null
+
+  // Formats:
+  //   4 Lightning Bolt
+  //   4x Lightning Bolt
+  //   4 Lightning Bolt *F* 
+  //   1 Baylen, the Haymaker (BLB) 205
+  //   2 Counterspell (MH2) 46 
+  //   Lightning Bolt              (qty defaults to 1)
+  const re = /^(?:(\d+)[xX]?\s+)?(.+?)(?:\s+\(([A-Z0-9]+)\)(?:\s+(\S+))?(\s\*[Ff]\*)?)?$/
+  const m = line.match(re)
+  if (!m) return null
+
+  const name = m[3]?.trim()
+  if (!name || name.length < 2) return null
+
+  return {
+    qty: m[1] ? parseInt(m[1]) : 1,
+    name,
+    set: m[3]?.toLowerCase() || undefined,
+    collectorNumber: m[4] || undefined,
+    foil: !!m[5],
+  }
+}
+
+async function parseList() {
   summary.value = null
   const lines = rawInput.value.split('\n').map(l => l.trim()).filter(Boolean)
+  parsed.value = lines.map(parseLine).filter((r): r is ParsedRow => r !== null)
+  await fetchPreviews()
+}
 
-  parsed.value = lines.map(line => {
-    // Skip comment/section lines like "// Creatures" or "# Sideboard"
-    if (/^[/#]/.test(line)) return null
-
-    const match = line.match(/^(\d+)[xX]?\s+(.+)$/)
-    if (match) {
-      return { qty: parseInt(match[1]), name: match[2].trim() }
-    }
-    // No leading number — treat as qty 1
-    if (line.length > 1) {
-      return { qty: 1, name: line }
-    }
-    return null
-  }).filter((r): r is ParsedRow => r !== null)
+async function fetchPreviews() {
+  previewLoading.value = true
+  // Resolve in batches of 4 to stay within Scryfall rate limits
+  const BATCH = 4
+  const rows = parsed.value
+  for (let i = 0; i < rows.length; i += BATCH) {
+    await Promise.all(
+      rows.slice(i, i + BATCH).map(async (row) => {
+        if (row.imageUri) return
+        row.resolving = true
+        try {
+          let card = (row.set && row.collectorNumber)
+            ? await localGetCardBySetAndNumber(row.set, row.collectorNumber)
+            : null
+          if (!card) card = await localGetCardByName(row.name, row.set)
+          if (card) {
+            row.imageUri = card.image_uris?.small ?? card.card_faces?.[0]?.image_uris?.small
+            row.scryfallId = card.id
+          } else {
+            row.error = 'Not found'
+          }
+        } catch {
+          row.error = 'Lookup failed'
+        }
+        row.resolving = false
+      })
+    )
+  }
+  previewLoading.value = false
 }
 
 async function importAll() {
@@ -197,14 +273,24 @@ async function importAll() {
   for (const row of parsed.value) {
     currentCardName.value = row.name
     try {
-      const card = await getCardByName(row.name)
-      if (!card) {
+      // Re-use scryfallId resolved during preview; fall back to local-only lookup
+      let scryfallId = row.scryfallId
+      if (!scryfallId) {
+        let card = (row.set && row.collectorNumber)
+          ? await localGetCardBySetAndNumber(row.set, row.collectorNumber)
+          : null
+        if (!card) card = await localGetCardByName(row.name, row.set)
+        scryfallId = card?.id
+      }
+
+      if (!scryfallId) {
         notFoundNames.push(row.name)
       } else {
+        const isFoil = row.foil ?? defaultFoil.value
         await addCard({
-          scryfallId: card.id,
-          quantity: defaultFoil.value ? 0 : row.qty,
-          foilQuantity: defaultFoil.value ? row.qty : 0,
+          scryfallId,
+          quantity: isFoil ? 0 : row.qty,
+          foilQuantity: isFoil ? row.qty : 0,
           condition: defaultCondition.value,
           language: 'en',
           isProxy: false,
@@ -229,5 +315,6 @@ function reset() {
   parsed.value = []
   summary.value = null
   doneCount.value = 0
+  previewLoading.value = false
 }
 </script>

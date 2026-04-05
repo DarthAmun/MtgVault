@@ -29,6 +29,9 @@ import {
   FaFileImport,
   FaExclamationTriangle,
   FaCheck,
+  FaCrown,
+  FaLayerGroup,
+  FaMagic,
 } from 'oh-vue-icons/icons'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -62,6 +65,9 @@ export default defineNuxtPlugin((nuxtApp) => {
     FaFileImport,
     FaExclamationTriangle,
     FaCheck,
+    FaCrown,
+    FaLayerGroup,
+    FaMagic,
   )
   nuxtApp.vueApp.component('VIcon', OhVueIcon)
 })

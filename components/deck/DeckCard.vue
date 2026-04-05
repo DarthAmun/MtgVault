@@ -82,9 +82,17 @@ const relativeDate = computed(() => {
 })
 
 onMounted(async () => {
-  if (props.deck.coverScryfallId) {
-    const card = await db.scryfallCards.get(props.deck.coverScryfallId)
-    coverImage.value = card?.image_uris?.art_crop ?? card?.card_faces?.[0]?.image_uris?.art_crop
+  // Explicit cover > commander > first mainboard card
+  const candidates = [
+    props.deck.coverScryfallId,
+    props.deck.cards.find(c => c.isCommander)?.scryfallId,
+    props.deck.cards.find(c => !c.isSideboard)?.scryfallId,
+  ].filter(Boolean) as string[]
+
+  for (const id of candidates) {
+    const card = await db.scryfallCards.get(id)
+    const img = card?.image_uris?.art_crop ?? card?.card_faces?.[0]?.image_uris?.art_crop
+    if (img) { coverImage.value = img; break }
   }
 })
 </script>

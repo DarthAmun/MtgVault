@@ -136,6 +136,31 @@ export function useCollection() {
     return JSON.stringify(entries, null, 2)
   }
 
+  async function exportToCSV(): Promise<string> {
+    const entries = await db.collection.toArray()
+    const header = ['Name', 'Set', 'Collector Number', 'Quantity', 'Foil Quantity', 'Condition', 'Language', 'Foil', 'Proxy', 'Custom', 'Tags', 'Storage', 'Purchase Price', 'Added At']
+    const rows = await Promise.all(entries.map(async entry => {
+      const card = await db.scryfallCards.get(entry.scryfallId)
+      return [
+        card?.name ?? entry.scryfallId,
+        card?.set?.toUpperCase() ?? '',
+        card?.collector_number ?? '',
+        entry.quantity,
+        entry.foilQuantity ?? 0,
+        entry.condition,
+        entry.language,
+        (entry.foilQuantity ?? 0) > 0 ? 'Yes' : 'No',
+        entry.isProxy ? 'Yes' : 'No',
+        entry.isCustom ? 'Yes' : 'No',
+        entry.tags.join(';'),
+        entry.storage ?? '',
+        entry.purchasePrice ?? '',
+        entry.addedAt.slice(0, 10),
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+    }))
+    return [header.map(h => `"${h}"`).join(','), ...rows].join('\n')
+  }
+
   return {
     addCard,
     updateCard,
@@ -153,5 +178,6 @@ export function useCollection() {
     parseTextList,
     exportToText,
     exportToJSON,
+    exportToCSV,
   }
 }

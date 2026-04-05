@@ -1,6 +1,8 @@
 import Dexie, { type Table } from 'dexie'
 import type { CollectionEntry, Deck, CustomCard, ScryfallCard } from '~/types'
-import type { PHashEntry } from '~/composables/usePHash'
+
+// Kept as a stub so existing IndexedDB schemas (version 2) remain valid
+interface PHashEntry { scryfallId: string; hash: Uint8Array }
 
 export class MTGVaultDatabase extends Dexie {
   // App tables

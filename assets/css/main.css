@@ -142,6 +142,33 @@ h1, h2, h3, .display {
 }
 .animate-slide-up { animation: slide-up 0.3s ease forwards; }
 
+/* ─── Foil shimmer ────────────────────────────────────────────────────────── */
+@keyframes foil-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.foil-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    115deg,
+    transparent       20%,
+    rgba(255,100,100,0.25) 30%,
+    rgba(255,220,50,0.25)  40%,
+    rgba(100,255,100,0.25) 50%,
+    rgba(50,180,255,0.25)  60%,
+    rgba(200,80,255,0.25)  70%,
+    transparent       80%
+  );
+  background-size: 300% 300%;
+  animation: foil-shift 4s ease infinite;
+  opacity: 0.85;
+}
+
 /* ─── Scanner ────────────────────────────────────────────────────────────── */
 .scanner-viewport {
   position: relative;

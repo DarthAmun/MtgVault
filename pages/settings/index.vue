@@ -40,8 +40,11 @@
     <!-- Export -->
     <div class="vault-card p-6 space-y-4">
       <h2 class="font-display text-lg text-vault-text">Export Collection</h2>
-      <div class="flex gap-3">
+      <div class="flex flex-wrap gap-3">
         <Button label="Export as Text" outlined @click="exportText">
+          <template #icon><v-icon name="fa-file-export" class="mr-2" /></template>
+        </Button>
+        <Button label="Export as CSV" outlined @click="exportCSV">
           <template #icon><v-icon name="fa-file-export" class="mr-2" /></template>
         </Button>
         <Button label="Export as JSON" outlined @click="exportJSON">
@@ -66,7 +69,7 @@ import { useCollection } from '~/composables/useCollection'
 import { db } from '~/db'
 
 const { importBulkData, getBulkMeta } = useScryfall()
-const { exportToText, exportToJSON } = useCollection()
+const { exportToText, exportToJSON, exportToCSV } = useCollection()
 
 const importing = ref(false)
 const bulkMeta = reactive({ lastUpdated: null as string | null, cardCount: 0 })
@@ -101,6 +104,11 @@ function downloadFile(content: string, filename: string, mime: string) {
 async function exportText() {
   const text = await exportToText()
   downloadFile(text, 'collection.txt', 'text/plain')
+}
+
+async function exportCSV() {
+  const csv = await exportToCSV()
+  downloadFile(csv, 'collection.csv', 'text/csv')
 }
 
 async function exportJSON() {

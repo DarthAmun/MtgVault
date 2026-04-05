@@ -14,11 +14,16 @@
     </div>
     <div>
       <label class="text-sm text-vault-muted mb-1 block">Import Deck List (optional)</label>
-      <Textarea v-model="form.deckList" rows="6" class="w-full font-mono text-xs" placeholder="1 Sol Ring&#10;4 Lightning Bolt&#10;…" />
+      <p class="text-xs text-vault-muted mb-1">Supports: <span class="font-mono">1 Sol Ring</span> · <span class="font-mono">1 Baylen, the Haymaker (BLB) 205</span></p>
+      <Textarea v-model="form.deckList" rows="6" class="w-full font-mono text-xs" placeholder="1 Sol Ring&#10;1 Atraxa, Praetors' Voice (2X2) 196&#10;…" />
+    </div>
+    <div v-if="importing" class="space-y-1">
+      <ProgressBar :value="importProgress" />
+      <p class="text-xs text-vault-muted text-center">{{ importMsg }}</p>
     </div>
     <div class="flex justify-end gap-2 pt-2 border-t border-vault-border">
-      <Button label="Cancel" outlined @click="$emit('close')" />
-      <Button label="Create Deck" :disabled="!form.name" @click="create" />
+      <Button label="Cancel" outlined :disabled="importing" @click="$emit('close')" />
+      <Button label="Create Deck" :disabled="!form.name || importing" :loading="importing" @click="create" />
     </div>
   </div>
 </template>
@@ -29,19 +34,17 @@ import { useScryfall } from '~/composables/useScryfall'
 
 const emit = defineEmits<{ created: [id: string]; close: [] }>()
 const { createDeck, parseDeckList, addCardToDeck } = useDecks()
-const { getCardByName } = useScryfall()
+const { localGetCardByName, localGetCardBySetAndNumber } = useScryfall()
 
 const FORMATS = [
   'commander', 'standard', 'pioneer', 'modern', 'legacy',
   'vintage', 'pauper', 'brawl', 'oathbreaker', 'other',
 ]
 
-const form = reactive({
-  name: '',
-  format: 'commander',
-  description: '',
-  deckList: '',
-})
+const form = reactive({ name: '', format: 'commander', description: '', deckList: '' })
+const importing = ref(false)
+const importProgress = ref(0)
+const importMsg = ref('')
 
 async function create() {
   const id = await createDeck({
@@ -56,9 +59,18 @@ async function create() {
   })
 
   if (form.deckList.trim()) {
+    importing.value = true
     const lines = parseDeckList(form.deckList)
-    for (const line of lines) {
-      const card = await getCardByName(line.name)
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      importProgress.value = Math.round((i / lines.length) * 100)
+      importMsg.value = line.name
+
+      let card = (line.set && line.collectorNumber)
+        ? await localGetCardBySetAndNumber(line.set, line.collectorNumber)
+        : null
+      if (!card) card = await localGetCardByName(line.name, line.set)
+
       if (card) {
         await addCardToDeck(id, {
           scryfallId: card.id,
@@ -66,9 +78,11 @@ async function create() {
           isSideboard: line.isSideboard,
           isCommander: line.isCommander,
           isCompanion: false,
+          foil: line.foil || undefined,
         })
       }
     }
+    importing.value = false
   }
 
   emit('created', id)

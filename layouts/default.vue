@@ -14,11 +14,11 @@
         style="border-right: 1px solid rgba(124,58,237,0.10);"
       >
         <!-- Brand -->
-        <div class="flex items-center gap-3 px-4 py-5 shrink-0"
+        <div class="flex items-center gap-3 px-2 py-5 shrink-0"
              style="border-bottom: 1px solid rgba(124,58,237,0.08);">
-          <div class="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center shadow-accent"
-               style="background: linear-gradient(135deg, #7c3aed, #9333ea);">
-            <span class="text-white font-display text-sm font-bold">M</span>
+          <div class="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center shadow-accent"
+               >
+            <img src="/assets/logo.png"/>
           </div>
           <div v-if="!collapsed" class="overflow-hidden">
             <p class="font-display text-vault-text text-sm font-bold leading-none tracking-wide">MTG</p>
@@ -58,6 +58,8 @@
       </main>
     </div>
   </div>
+
+  <PwaInstallPrompt />
 </template>
 
 <script setup lang="ts">

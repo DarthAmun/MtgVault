@@ -20,6 +20,18 @@
       <p class="font-medium text-sm truncate">{{ card?.name ?? entry.scryfallId }}</p>
       <p class="text-xs text-vault-muted">{{ card?.type_line }}</p>
       <p class="text-xs text-vault-dim">{{ card?.set_name }} · #{{ card?.collector_number }}</p>
+      <!-- Deck locations -->
+      <div v-if="deckNames.length" class="flex flex-wrap gap-1 mt-0.5" :title="deckNames.join('\n')">
+        <span
+          v-for="name in deckNames.slice(0, 3)"
+          :key="name"
+          class="text-[10px] px-1.5 py-px rounded-full bg-vault-accent/10 text-vault-accent/80 truncate max-w-[120px]"
+        >{{ name }}</span>
+        <span
+          v-if="deckNames.length > 3"
+          class="text-[10px] px-1.5 py-px rounded-full bg-vault-surface3 text-vault-dim"
+        >+{{ deckNames.length - 3 }}</span>
+      </div>
     </div>
 
     <!-- Mana cost -->
@@ -31,6 +43,10 @@
     <span :class="`hidden md:block text-xs font-medium capitalize rarity-${card?.rarity} shrink-0`">
       {{ card?.rarity }}
     </span>
+
+    <!-- Flags -->
+    <span v-if="entry.isCustom" class="hidden sm:block text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0" style="background: rgba(124,58,237,0.2); color: #a78bfa;">CUSTOM</span>
+    <span v-else-if="entry.isProxy" class="hidden sm:block text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/30 text-vault-muted shrink-0">PROXY</span>
 
     <!-- Condition -->
     <span class="hidden lg:block text-xs px-1.5 py-0.5 rounded bg-vault-surface3 text-vault-muted shrink-0">
@@ -59,6 +75,7 @@
 </template>
 
 <script setup lang="ts">
+import { db } from '~/db'
 import type { CollectionEntry, ScryfallCard } from '~/types'
 
 const props = defineProps<{
@@ -72,4 +89,22 @@ const imageUri = computed(() =>
   props.card?.image_uris?.small ??
   props.card?.card_faces?.[0]?.image_uris?.small
 )
+
+const deckNames = ref<string[]>([])
+
+onMounted(async () => {
+  const sc = await db.scryfallCards.get(props.entry.scryfallId)
+  const printingIds = new Set<string>()
+  if (sc?.oracle_id) {
+    const printings = await db.scryfallCards.where('oracle_id').equals(sc.oracle_id).toArray()
+    printings.forEach(p => printingIds.add(p.id))
+  } else {
+    printingIds.add(props.entry.scryfallId)
+  }
+
+  const allDecks = await db.decks.toArray()
+  deckNames.value = allDecks
+    .filter(d => d.cards.some(c => printingIds.has(c.scryfallId)))
+    .map(d => d.name)
+})
 </script>

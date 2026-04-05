@@ -3,13 +3,13 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="font-display text-3xl text-vault-gold">Proxies</h1>
-        <p class="text-vault-muted text-sm mt-1">{{ proxies.length }} proxy cards</p>
+        <p class="text-vault-muted text-sm mt-1">{{ proxies.length }} proxy card{{ proxies.length !== 1 ? 's' : '' }}</p>
       </div>
       <div class="flex gap-2">
         <Button label="Create Custom Card" outlined @click="showCustom = true">
           <template #icon><v-icon name="fa-plus" class="mr-2" /></template>
         </Button>
-        <Button label="Print All" @click="printAll" :disabled="!proxies.length">
+        <Button label="Print All" :disabled="!proxies.length" :loading="printing" @click="printAll">
           <template #icon><v-icon name="fa-print" class="mr-2" /></template>
         </Button>
       </div>
@@ -60,6 +60,7 @@ import { db } from '~/db'
 
 const { getProxies } = useCollection()
 const showCustom = ref(false)
+const printing = ref(false)
 
 interface ProxyItem {
   entry: any
@@ -88,14 +89,102 @@ async function onCustomSaved() {
   await load()
 }
 
-function printSingle(_item: ProxyItem) {
-  // TODO: generate single-card PDF via jsPDF
-  alert('Print single proxy — implement with jsPDF')
+/** Load an image URI (data URL or http) into an HTMLImageElement */
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
 }
 
-function printAll() {
-  // TODO: generate print sheet PDF (3x3 grid per page)
-  alert('Print all proxies — implement with jsPDF')
+/**
+ * Draw a grid of card images onto a jsPDF doc.
+ * Standard Magic card: 63mm × 88mm. 3×3 fits on A4 with margins.
+ */
+async function buildPDF(items: ProxyItem[]): Promise<Blob> {
+  const { jsPDF } = await import('jspdf')
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const CARD_W = 63
+  const CARD_H = 88
+  const COLS = 3
+  const ROWS = 3
+  const PER_PAGE = COLS * ROWS
+  const MARGIN_X = (210 - COLS * CARD_W) / 2  // center on A4 (210mm)
+  const MARGIN_Y = (297 - ROWS * CARD_H) / 2  // center on A4 (297mm)
+
+  for (let i = 0; i < items.length; i++) {
+    if (i > 0 && i % PER_PAGE === 0) doc.addPage()
+
+    const slot = i % PER_PAGE
+    const col = slot % COLS
+    const row = Math.floor(slot / COLS)
+    const x = MARGIN_X + col * CARD_W
+    const y = MARGIN_Y + row * CARD_H
+
+    // Draw card outline
+    doc.setDrawColor(180, 180, 180)
+    doc.setLineWidth(0.3)
+    doc.rect(x, y, CARD_W, CARD_H)
+
+    const item = items[i]
+    if (item.imageUri) {
+      try {
+        const img = await loadImage(item.imageUri)
+        // Convert to data URL via canvas for jsPDF
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth || 480
+        canvas.height = img.naturalHeight || 670
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+        doc.addImage(dataUrl, 'JPEG', x, y, CARD_W, CARD_H)
+      } catch {
+        // Fall back to text label if image fails
+        doc.setFontSize(8)
+        doc.setTextColor(100, 100, 100)
+        doc.text(item.name, x + CARD_W / 2, y + CARD_H / 2, { align: 'center' })
+      }
+    } else {
+      doc.setFontSize(8)
+      doc.setTextColor(100, 100, 100)
+      doc.text(item.name, x + CARD_W / 2, y + CARD_H / 2, { align: 'center' })
+    }
+  }
+
+  return doc.output('blob')
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function printSingle(item: ProxyItem) {
+  printing.value = true
+  try {
+    const blob = await buildPDF([item])
+    downloadBlob(blob, `proxy-${item.name.replace(/\s+/g, '_')}.pdf`)
+  } finally {
+    printing.value = false
+  }
+}
+
+async function printAll() {
+  printing.value = true
+  try {
+    const blob = await buildPDF(proxies.value)
+    downloadBlob(blob, 'proxies.pdf')
+  } finally {
+    printing.value = false
+  }
 }
 
 onMounted(load)

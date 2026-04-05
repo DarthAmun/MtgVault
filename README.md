@@ -6,7 +6,7 @@ A personal Magic: The Gathering collection manager. Offline-first PWA built with
 
 - **Collection Management** — Add, filter, and browse your entire card collection with full Scryfall data cached locally
 - **Deck Builder** — Build and manage decks with mainboard/sideboard support, import from text lists
-- **Card Scanner** — Use your phone camera or webcam to identify cards via OCR (TensorFlow.js + Tesseract.js)
+- **Bulk Import** — Paste card lists in Moxfield/MTGO format to add cards to your collection or decks
 - **Stats Dashboard** — Color distribution, rarity breakdown, set breakdown, estimated value
 - **Proxy & Custom Cards** — Mark cards as proxies, create custom cards with a canvas-based card editor
 - **Offline-First PWA** — Installable, works without internet after initial bulk data download
@@ -52,7 +52,7 @@ Go to **Settings → Download** to fetch the full Scryfall bulk data (~100MB). T
 - Best scanner accuracy (local fuzzy matching)
 - No rate limiting
 
-Without it, the app falls back to live Scryfall API calls.
+Without it, card lookup will not work. The app is fully offline after the initial download.
 
 ### 4. Build for production
 
@@ -183,15 +183,14 @@ Then add an `electron/main.ts` that loads `http://localhost:3000` or the built o
 
 ## Roadmap / TODOs for Claude Code
 
-- [ ] `pages/proxies/index.vue` — Implement jsPDF print sheet (3×3 grid, A4/Letter)
-- [ ] `composables/useScanner.ts` — Add OpenCV.js perspective correction
+- [x] `pages/proxies/index.vue` — Implement jsPDF print sheet (3×3 grid, A4/Letter)
 - [ ] `pages/decks/[id].vue` — Add drag-and-drop card reordering
-- [ ] `composables/useStats.ts` — Add `valueOverTime` tracking (snapshot on each sync)
-- [ ] `components/cards/CustomCardEditor.vue` — Add color-based card frame gradients per color identity
+- [x] `composables/useStats.ts` — Add `valueOverTime` tracking (snapshot on each sync)
+- [x] `components/cards/CustomCardEditor.vue` — Add color-based card frame gradients per color identity
 - [ ] Add Pinia stores as the composables grow — consider `stores/collection.ts`, `stores/decks.ts`
-- [ ] Add PWA install prompt component
-- [ ] Add CSV export
-- [ ] Add `pages/collection/[scryfallId].vue` — all-printings view for a single card
+- [x] Add PWA install prompt component
+- [x] Add CSV export
+- [x] Add `pages/collection/[scryfallId].vue` — all-printings view for a single card
 
 ---
 

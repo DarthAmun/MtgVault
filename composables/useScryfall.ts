@@ -1,97 +1,42 @@
 import type { ScryfallCard, ScryfallSet } from '~/types'
 import { db, bulkUpsertScryfallCards } from '~/db'
 
-const BASE = 'https://api.scryfall.com'
 const BULK_META = 'https://api.scryfall.com/bulk-data'
 
-// Rate-limit: Scryfall asks for max 10 req/s — we stay safe at 80ms between calls
-let lastRequest = 0
-async function throttledFetch(url: string): Promise<Response> {
-  const now = Date.now()
-  const gap = now - lastRequest
-  if (gap < 80) await new Promise(r => setTimeout(r, 80 - gap))
-  lastRequest = Date.now()
-  return fetch(url)
-}
-
 export function useScryfall() {
-  // ── Single Card Lookups ──────────────────────────────────────────────────
+  // ── Single Card Lookups (local IndexedDB only) ───────────────────────────
 
   async function getCardById(id: string): Promise<ScryfallCard | null> {
-    // Check DB first
-    const cached = await db.scryfallCards.get(id)
-    if (cached) return cached
+    return (await db.scryfallCards.get(id)) ?? null
+  }
 
-    try {
-      const res = await throttledFetch(`${BASE}/cards/${id}`)
-      if (!res.ok) return null
-      const card: ScryfallCard = await res.json()
-      await db.scryfallCards.put(card)
-      return card
-    } catch {
-      return null
+  async function localGetCardByName(name: string, set?: string): Promise<ScryfallCard | null> {
+    // If set given, try exact printing first
+    if (set) {
+      const inSet = await db.scryfallCards
+        .where('set').equals(set.toLowerCase())
+        .and(c => c.name.toLowerCase() === name.toLowerCase())
+        .first()
+      if (inSet) return inSet
     }
+
+    // Fall back to any printing with matching name
+    return (await db.scryfallCards.where('name').equalsIgnoreCase(name).first()) ?? null
+  }
+
+  async function localGetCardBySetAndNumber(set: string, collectorNumber: string): Promise<ScryfallCard | null> {
+    return (await db.scryfallCards
+      .where('set').equals(set.toLowerCase())
+      .and(c => c.collector_number === collectorNumber)
+      .first()) ?? null
   }
 
   async function getCardByName(name: string, set?: string): Promise<ScryfallCard | null> {
-    // Try local DB first (exact then fuzzy)
-    const exact = await db.scryfallCards.where('name').equalsIgnoreCase(name).first()
-    if (exact) return exact
-
-    try {
-      const params = new URLSearchParams({ fuzzy: name })
-      if (set) params.set('set', set)
-      const res = await throttledFetch(`${BASE}/cards/named?${params}`)
-      if (!res.ok) return null
-      const card: ScryfallCard = await res.json()
-      await db.scryfallCards.put(card)
-      return card
-    } catch {
-      return null
-    }
+    return localGetCardByName(name, set)
   }
 
-  // ── Search ───────────────────────────────────────────────────────────────
-
-  interface SearchOptions {
-    query: string
-    page?: number
-    order?: string
-    dir?: 'asc' | 'desc'
-  }
-
-  interface SearchResult {
-    cards: ScryfallCard[]
-    totalCards: number
-    hasMore: boolean
-    nextPage?: string
-  }
-
-  async function searchCards(opts: SearchOptions): Promise<SearchResult> {
-    const params = new URLSearchParams({
-      q: opts.query,
-      page: String(opts.page ?? 1),
-      order: opts.order ?? 'name',
-      dir: opts.dir ?? 'asc',
-    })
-
-    const res = await throttledFetch(`${BASE}/cards/search?${params}`)
-
-    if (res.status === 404) return { cards: [], totalCards: 0, hasMore: false }
-    if (!res.ok) throw new Error(`Scryfall search failed: ${res.status}`)
-
-    const data = await res.json()
-    const cards: ScryfallCard[] = data.data ?? []
-
-    // Cache all returned cards
-    await bulkUpsertScryfallCards(cards)
-
-    return {
-      cards,
-      totalCards: data.total_cards ?? 0,
-      hasMore: data.has_more ?? false,
-      nextPage: data.next_page,
-    }
+  async function getCardBySetAndNumber(set: string, collectorNumber: string): Promise<ScryfallCard | null> {
+    return localGetCardBySetAndNumber(set, collectorNumber)
   }
 
   // ── Local full-text search across cached cards ───────────────────────────
@@ -100,7 +45,6 @@ export function useScryfall() {
     const q = query.toLowerCase().trim()
     if (!q) return []
 
-    // Try exact name first
     const byName = await db.scryfallCards
       .where('name')
       .startsWithIgnoreCase(q)
@@ -109,7 +53,6 @@ export function useScryfall() {
 
     if (byName.length >= limit) return byName
 
-    // Supplement with full scan (slower, but works for type/text search)
     const rest = await db.scryfallCards
       .filter(c =>
         c.name.toLowerCase().includes(q) ||
@@ -120,64 +63,57 @@ export function useScryfall() {
       .limit(limit)
       .toArray()
 
-    // Deduplicate by id
     const seen = new Set(byName.map(c => c.id))
     return [...byName, ...rest.filter(c => !seen.has(c.id))].slice(0, limit)
   }
 
-  // ── Autocomplete ─────────────────────────────────────────────────────────
+  // ── Autocomplete (local only) ─────────────────────────────────────────────
 
   async function autocomplete(query: string): Promise<string[]> {
     if (query.length < 2) return []
-
-    // Try local first
     const local = await db.scryfallCards
       .where('name')
       .startsWithIgnoreCase(query)
       .limit(10)
       .toArray()
-
-    if (local.length >= 5) return local.map(c => c.name)
-
-    try {
-      const res = await throttledFetch(`${BASE}/cards/autocomplete?q=${encodeURIComponent(query)}`)
-      if (!res.ok) return local.map(c => c.name)
-      const data = await res.json()
-      return data.data ?? []
-    } catch {
-      return local.map(c => c.name)
-    }
+    return local.map(c => c.name)
   }
 
-  // Returns full card objects for rich autocomplete dropdowns
   async function autocompleteCards(query: string): Promise<ScryfallCard[]> {
     if (query.length < 2) return []
-
-    const local = await db.scryfallCards
+    return db.scryfallCards
       .where('name')
       .startsWithIgnoreCase(query)
       .limit(8)
       .toArray()
-
-    if (local.length >= 5) return local
-
-    try {
-      const res = await throttledFetch(
-        `${BASE}/cards/search?q=name%3A${encodeURIComponent(query)}&order=name&unique=names`
-      )
-      if (!res.ok) return local
-      const data = await res.json()
-      const cards: ScryfallCard[] = (data.data ?? []).slice(0, 8)
-      await bulkUpsertScryfallCards(cards)
-      // Merge with local to avoid duplicates
-      const seen = new Set(local.map(c => c.name.toLowerCase()))
-      return [...local, ...cards.filter(c => !seen.has(c.name.toLowerCase()))].slice(0, 8)
-    } catch {
-      return local
-    }
   }
 
-  // ── Bulk Data Import ─────────────────────────────────────────────────────
+  // ── Prints (local only) ───────────────────────────────────────────────────
+
+  async function getPrints(oracleId: string): Promise<ScryfallCard[]> {
+    return db.scryfallCards
+      .where('oracle_id').equals(oracleId)
+      .toArray()
+  }
+
+  // ── Sets (derived from local card data) ──────────────────────────────────
+
+  async function getAllSets(): Promise<ScryfallSet[]> {
+    // Build a unique set list from the cards we have stored
+    const cards = await db.scryfallCards.toArray()
+    const seen = new Map<string, ScryfallSet>()
+    for (const c of cards) {
+      if (c.set && !seen.has(c.set)) {
+        seen.set(c.set, {
+          code: c.set,
+          name: c.set_name ?? c.set,
+        } as ScryfallSet)
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  // ── Bulk Data Import (network — intentional, this is the preload step) ────
 
   interface BulkProgress {
     phase: 'fetching-meta' | 'downloading' | 'parsing' | 'storing' | 'done' | 'error'
@@ -192,7 +128,6 @@ export function useScryfall() {
   ): Promise<void> {
     onProgress({ phase: 'fetching-meta', loaded: 0, total: 0, percent: 0, message: 'Fetching bulk data manifest…' })
 
-    // Get bulk data URL
     const metaRes = await fetch(BULK_META)
     const meta = await metaRes.json()
     const defaultCards = meta.data?.find((d: any) => d.type === 'default_cards')
@@ -203,18 +138,17 @@ export function useScryfall() {
 
     onProgress({ phase: 'downloading', loaded: 0, total: expectedSize, percent: 0, message: 'Downloading card data (~100MB)…' })
 
-    // Stream download with progress
     const res = await fetch(downloadUrl)
     if (!res.ok) throw new Error('Bulk download failed')
 
     const reader = res.body!.getReader()
-    const chunks: Uint8Array[] = []
+    const chunks: Uint8Array<ArrayBuffer>[] = []
     let loaded = 0
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      chunks.push(value)
+      chunks.push(value as Uint8Array<ArrayBuffer>)
       loaded += value.length
       onProgress({
         phase: 'downloading',
@@ -248,36 +182,12 @@ export function useScryfall() {
     return { lastUpdated, cardCount }
   }
 
-  // ── Sets ─────────────────────────────────────────────────────────────────
-
-  async function getAllSets(): Promise<ScryfallSet[]> {
-    const res = await throttledFetch(`${BASE}/sets`)
-    if (!res.ok) return []
-    const data = await res.json()
-    return data.data ?? []
-  }
-
-  // ── Prints ───────────────────────────────────────────────────────────────
-
-  async function getPrints(oracleId: string): Promise<ScryfallCard[]> {
-    try {
-      const res = await throttledFetch(
-        `${BASE}/cards/search?q=oracleid:${oracleId}&unique=prints&order=released`
-      )
-      if (!res.ok) return []
-      const data = await res.json()
-      const cards: ScryfallCard[] = data.data ?? []
-      await bulkUpsertScryfallCards(cards)
-      return cards
-    } catch {
-      return []
-    }
-  }
-
   return {
     getCardById,
     getCardByName,
-    searchCards,
+    getCardBySetAndNumber,
+    localGetCardByName,
+    localGetCardBySetAndNumber,
     localSearch,
     autocomplete,
     autocompleteCards,

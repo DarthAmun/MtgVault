@@ -1,6 +1,36 @@
 import { db } from '~/db'
 import type { CollectionStats, Rarity } from '~/types'
 
+const VALUE_HISTORY_KEY = 'value_history'
+
+/** Store a daily value snapshot so we can chart value growth over time */
+async function snapshotValue(value: number): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10)
+  const existing = await db.syncMeta.get(VALUE_HISTORY_KEY)
+  const history: { date: string; value: number }[] = existing?.value
+    ? JSON.parse(existing.value as string)
+    : []
+
+  // Only one snapshot per day — update if already exists for today
+  const last = history[history.length - 1]
+  if (last?.date === today) {
+    last.value = value
+  } else {
+    history.push({ date: today, value })
+  }
+
+  // Keep at most 365 data points
+  if (history.length > 365) history.splice(0, history.length - 365)
+
+  await db.syncMeta.put({ key: VALUE_HISTORY_KEY, value: JSON.stringify(history) })
+}
+
+async function getValueHistory(): Promise<{ date: string; value: number }[]> {
+  const existing = await db.syncMeta.get(VALUE_HISTORY_KEY)
+  if (!existing?.value) return []
+  return JSON.parse(existing.value as string)
+}
+
 export function useStats() {
   async function getCollectionStats(): Promise<CollectionStats> {
     const entries = await db.collection.toArray()
@@ -25,10 +55,12 @@ export function useStats() {
 
       uniqueCards.add(sc.oracle_id ?? sc.id)
 
-      // Value
-      const price = parseFloat(sc.prices?.usd ?? '0') || 0
-      const priceFoil = parseFloat(sc.prices?.usd_foil ?? '0') || 0
-      totalValue += price * entry.quantity + priceFoil * (entry.foilQuantity ?? 0)
+      // Value — proxies are worthless
+      if (!entry.isProxy) {
+        const price = parseFloat(sc.prices?.usd ?? '0') || 0
+        const priceFoil = parseFloat(sc.prices?.usd_foil ?? '0') || 0
+        totalValue += price * entry.quantity + priceFoil * (entry.foilQuantity ?? 0)
+      }
 
       // Colors
       for (const c of sc.color_identity ?? []) {
@@ -61,6 +93,10 @@ export function useStats() {
 
     const totalDecks = await db.decks.count()
 
+    // Snapshot today's value for the history chart
+    await snapshotValue(totalValue)
+    const valueOverTime = await getValueHistory()
+
     return {
       totalCards,
       uniqueCards: uniqueCards.size,
@@ -75,9 +111,9 @@ export function useStats() {
       byType,
       recentlyAdded,
       mostUsedCards: [],
-      valueOverTime: [],
+      valueOverTime,
     }
   }
 
-  return { getCollectionStats }
+  return { getCollectionStats, getValueHistory }
 }
