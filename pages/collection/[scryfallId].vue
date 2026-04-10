@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-4 md:p-6 space-y-4 md:space-y-6">
     <!-- Back -->
     <button class="flex items-center gap-2 text-vault-muted hover:text-vault-text text-sm transition-colors" @click="$router.back()">
       <v-icon name="fa-chevron-left" scale="0.8" />

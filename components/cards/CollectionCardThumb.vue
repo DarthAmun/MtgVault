@@ -95,10 +95,10 @@
         {{ stackCount }}×
       </div>
 
-      <!-- Hover overlay -->
+      <!-- Hover overlay (always visible on mobile, hover-only on desktop) -->
       <div
         class="absolute inset-0 flex flex-col items-center justify-end pb-2 gap-1 transition-opacity duration-200"
-        :class="hovered ? 'opacity-100' : 'opacity-0'"
+        :class="hovered ? 'opacity-100' : 'sm:opacity-0'"
         style="background: linear-gradient(to top, rgba(30,26,46,0.72) 0%, transparent 55%);"
       >
         <div class="flex gap-1">

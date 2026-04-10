@@ -95,9 +95,12 @@ function groupQty(items: EnrichedCard[]): number {
 
 <style scoped>
 .deck-columns {
-  /* CSS columns: browser fills left column top-to-bottom, spills into next */
-  columns: 2;
+  columns: 1;
   column-gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .deck-columns { columns: 2; }
 }
 
 @media (min-width: 1280px) {
@@ -105,7 +108,6 @@ function groupQty(items: EnrichedCard[]): number {
 }
 
 .deck-group {
-  /* break-inside prevents a group from splitting across columns */
   break-inside: avoid;
   margin-bottom: 1.25rem;
 }

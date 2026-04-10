@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-4 md:p-6 space-y-4 md:space-y-6">
     <div>
       <h1 class="font-display text-3xl text-vault-gold">Bulk Import</h1>
       <p class="text-vault-muted text-sm mt-1">Paste a card list to add multiple cards at once</p>

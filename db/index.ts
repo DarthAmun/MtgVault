@@ -4,6 +4,14 @@ import type { CollectionEntry, Deck, CustomCard, ScryfallCard } from '~/types'
 // Kept as a stub so existing IndexedDB schemas (version 2) remain valid
 interface PHashEntry { scryfallId: string; hash: Uint8Array }
 
+export interface PartyPage {
+  id: string
+  docId: string
+  docName: string
+  pageNum: number
+  blob: Blob
+}
+
 export class MTGVaultDatabase extends Dexie {
   // App tables
   collection!: Table<CollectionEntry, string>
@@ -18,6 +26,9 @@ export class MTGVaultDatabase extends Dexie {
 
   // Bulk data metadata + search buffer blobs
   syncMeta!: Table<{ key: string; value: string | number }, string>
+
+  // Commander Party materials
+  partyPages!: Table<PartyPage, string>
 
   constructor() {
     super('MTGVault')
@@ -48,6 +59,21 @@ export class MTGVaultDatabase extends Dexie {
       // the binary search buffer in syncMeta is used for fast scan-time lookup
       pHashEntries: 'scryfallId',
       syncMeta: 'key',
+    })
+
+    // Version 3: adds Commander Party pages table
+    this.version(3).stores({
+      collection: 'id, scryfallId, condition, language, *tags, *deckIds, storage, isProxy, isCustom, addedAt',
+      decks: 'id, name, format, *tags, *colorIdentity, createdAt, updatedAt, isArchived',
+      customCards: 'id, name, *colors, *colorIdentity, rarity, createdAt',
+      scryfallCards: [
+        'id', 'oracle_id', 'name', 'set', 'set_name', 'type_line', 'rarity',
+        'cmc', '*colors', '*color_identity', '*keywords', 'collector_number',
+        'artist', 'released_at', 'layout',
+      ].join(', '),
+      pHashEntries: 'scryfallId',
+      syncMeta: 'key',
+      partyPages: 'id, docId, docName, pageNum',
     })
   }
 }

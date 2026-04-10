@@ -7,12 +7,12 @@
     <!-- Qty controls -->
     <div class="flex items-center gap-1 shrink-0" @click.stop>
       <button
-        class="w-4 h-4 rounded flex items-center justify-center text-vault-dim hover:text-vault-accent opacity-0 group-hover:opacity-100 transition-opacity text-xs leading-none"
+        class="w-4 h-4 rounded flex items-center justify-center text-vault-dim hover:text-vault-accent sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-xs leading-none"
         @click="adjust(-1)"
       >−</button>
       <span class="text-xs font-mono font-bold text-vault-accent w-4 text-center">{{ item.dc.quantity }}</span>
       <button
-        class="w-4 h-4 rounded flex items-center justify-center text-vault-dim hover:text-vault-accent opacity-0 group-hover:opacity-100 transition-opacity text-xs leading-none"
+        class="w-4 h-4 rounded flex items-center justify-center text-vault-dim hover:text-vault-accent sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-xs leading-none"
         @click="adjust(1)"
       >+</button>
     </div>
@@ -29,11 +29,11 @@
     <!-- NOT OWNED badge -->
     <span
       v-if="item.dc.notOwned"
-      class="text-[9px] font-bold px-1 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20 shrink-0 uppercase tracking-wide"
+      class="text-[9px] font-bold px-1 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20 shrink-0 uppercase tracking-wide hidden sm:inline"
     >not owned</span>
 
-    <!-- Mana cost -->
-    <ManaCost v-if="item.card?.mana_cost" :cost="item.card.mana_cost" class="shrink-0" />
+    <!-- Mana cost (hidden on small screens to give name space) -->
+    <ManaCost v-if="item.card?.mana_cost" :cost="item.card.mana_cost" class="shrink-0 hidden sm:flex" />
 
     <!-- Owned dot -->
     <span
@@ -43,12 +43,21 @@
       :title="ownedCount >= item.dc.quantity ? 'Owned' : `${ownedCount}/${item.dc.quantity} owned`"
     />
 
+    <!-- Mobile image preview button -->
+    <button
+      v-if="imageUri"
+      class="sm:hidden shrink-0 w-5 h-5 flex items-center justify-center rounded text-vault-dim active:text-vault-accent"
+      @click.stop="showMobileCard = true"
+    >
+      <v-icon name="fa-image" scale="0.75" />
+    </button>
+
     <!-- Commander toggle — always visible when active, hover-visible otherwise -->
     <button
       class="transition-opacity shrink-0"
       :class="item.dc.isCommander
         ? 'opacity-100 text-vault-gold'
-        : 'opacity-0 group-hover:opacity-100 text-vault-dim hover:text-vault-gold'"
+        : 'sm:opacity-0 sm:group-hover:opacity-100 text-vault-dim hover:text-vault-gold'"
       :title="item.dc.isCommander ? 'Remove Commander status' : 'Set as Commander'"
       @click.stop="toggleCommander"
     >
@@ -57,21 +66,48 @@
 
     <!-- Remove -->
     <button
-      class="opacity-0 group-hover:opacity-100 transition-opacity text-vault-dim hover:text-red-400 shrink-0"
+      class="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-vault-dim hover:text-red-400 shrink-0"
       @click.stop="remove"
     >
       <v-icon name="fa-times" scale="0.8" />
     </button>
 
-    <!-- Card image tooltip -->
+    <!-- Desktop hover tooltip -->
     <Teleport to="body">
       <div
         v-if="showPreview && imageUri"
-        class="fixed z-50 pointer-events-none"
+        class="fixed z-50 pointer-events-none hidden sm:block"
         :style="tooltipStyle"
       >
         <img :src="imageUri" :alt="item.card?.name" class="w-40 rounded-xl shadow-2xl" style="aspect-ratio:63/88; object-fit:cover;" />
       </div>
+    </Teleport>
+
+    <!-- Mobile card image overlay -->
+    <Teleport to="body">
+      <Transition name="fade-overlay">
+        <div
+          v-if="showMobileCard && imageUri"
+          class="fixed inset-0 z-50 flex items-center justify-center sm:hidden"
+          style="background: rgba(0,0,0,0.75);"
+          @click="showMobileCard = false"
+        >
+          <div class="relative" @click.stop>
+            <img
+              :src="imageUri"
+              :alt="item.card?.name"
+              class="rounded-2xl shadow-2xl"
+              style="max-height: 80vh; max-width: 90vw; aspect-ratio: 63/88; object-fit: cover;"
+            />
+            <button
+              class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center text-white"
+              @click="showMobileCard = false"
+            >
+              <v-icon name="fa-times" scale="0.85" />
+            </button>
+          </div>
+        </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -92,6 +128,7 @@ const emit = defineEmits<{ changed: [] }>()
 const { removeCardFromDeck, setCardQuantity, setCommander } = useDecks()
 
 const showPreview = ref(false)
+const showMobileCard = ref(false)
 const mouseX = ref(0)
 const mouseY = ref(0)
 const ownedCount = ref(0)
@@ -149,3 +186,8 @@ async function toggleCommander() {
   emit('changed')
 }
 </script>
+
+<style scoped>
+.fade-overlay-enter-active, .fade-overlay-leave-active { transition: opacity 0.2s; }
+.fade-overlay-enter-from, .fade-overlay-leave-to { opacity: 0; }
+</style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-8">
+  <div class="p-4 md:p-6 space-y-6 md:space-y-8">
     <div>
       <h1 class="font-display text-3xl text-vault-gold">Statistics</h1>
       <p class="text-vault-muted text-sm mt-1">Deep dive into your collection</p>

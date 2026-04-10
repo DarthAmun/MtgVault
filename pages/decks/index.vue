@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-4 md:p-6 space-y-4 md:space-y-6">
     <div class="flex items-center justify-between">
       <div>
         <h1 class="font-display text-3xl text-vault-gold">Decks</h1>

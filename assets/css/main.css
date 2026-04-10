@@ -368,6 +368,12 @@ h1, h2, h3, .display {
   box-shadow: 0 12px 32px rgba(124,58,237,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
   overflow: hidden !important;
   margin-top: 4px !important;
+  max-height: 280px !important;
+}
+.p-select-list-container,
+.p-dropdown-items-wrapper {
+  max-height: 260px !important;
+  overflow-y: auto !important;
 }
 .p-select-option,
 .p-dropdown-item {

@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 space-y-8 animate-slide-up">
+  <div class="p-4 md:p-6 space-y-6 md:space-y-8 animate-slide-up">
     <!-- Header -->
     <div>
       <h1 class="font-display text-3xl text-vault-gold">The Vault</h1>

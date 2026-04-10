@@ -32,6 +32,11 @@ import {
   FaCrown,
   FaLayerGroup,
   FaMagic,
+  FaHeart,
+  FaSkull,
+  FaUndo,
+  FaDice,
+  FaDragon,
 } from 'oh-vue-icons/icons'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -68,6 +73,11 @@ export default defineNuxtPlugin((nuxtApp) => {
     FaCrown,
     FaLayerGroup,
     FaMagic,
+    FaHeart,
+    FaSkull,
+    FaUndo,
+    FaDice,
+    FaDragon,
   )
   nuxtApp.vueApp.component('VIcon', OhVueIcon)
 })

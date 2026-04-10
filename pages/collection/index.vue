@@ -1,20 +1,20 @@
 <template>
-  <div class="p-6 space-y-6">
+  <div class="p-4 md:p-6 space-y-4 md:space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between flex-wrap gap-4">
+    <div class="flex items-start justify-between flex-wrap gap-3">
       <div>
         <h1 class="font-display text-3xl text-vault-gold">Collection</h1>
         <p class="text-vault-muted text-sm mt-1">{{ totalCount }} cards · {{ uniqueCount }} unique</p>
       </div>
-      <div class="flex gap-2">
-        <Button label="Import" outlined @click="showImport = true">
-          <template #icon><v-icon name="fa-file-import" class="mr-2" /></template>
+      <div class="flex gap-2 flex-wrap">
+        <Button label="Import" outlined @click="showImport = true" class="text-xs md:text-sm">
+          <template #icon><v-icon name="fa-file-import" class="mr-1 md:mr-2" /></template>
         </Button>
-        <Button label="Custom Card" outlined @click="openCustomCard()">
-          <template #icon><v-icon name="fa-magic" class="mr-2" /></template>
+        <Button label="Custom" outlined @click="openCustomCard()" class="text-xs md:text-sm">
+          <template #icon><v-icon name="fa-magic" class="mr-1 md:mr-2" /></template>
         </Button>
-        <Button label="Add Card" @click="showAddCard = true">
-          <template #icon><v-icon name="fa-plus" class="mr-2" /></template>
+        <Button label="Add Card" @click="showAddCard = true" class="text-xs md:text-sm">
+          <template #icon><v-icon name="fa-plus" class="mr-1 md:mr-2" /></template>
         </Button>
       </div>
     </div>

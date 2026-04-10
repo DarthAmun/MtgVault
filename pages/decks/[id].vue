@@ -1,5 +1,5 @@
 <template>
-  <div v-if="deck" class="p-6 space-y-6">
+  <div v-if="deck" class="p-4 md:p-6 space-y-4 md:space-y-6">
     <!-- Header -->
     <div class="flex items-start justify-between gap-4 flex-wrap">
       <div class="flex gap-4 items-start">
@@ -29,7 +29,7 @@
         </div>
       </div>
 
-      <div class="flex gap-2">
+      <div class="flex gap-2 flex-wrap">
         <Button label="Stats" outlined @click="showStats = true">
           <template #icon><v-icon name="fa-chart-bar" class="mr-2" /></template>
         </Button>

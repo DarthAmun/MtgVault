@@ -63,7 +63,11 @@ export function useCollection() {
   }
 
   async function getProxies(): Promise<CollectionEntry[]> {
-    return db.collection.where('isProxy').equals(1).toArray()
+    return db.collection.filter(e => e.isProxy === true).toArray()
+  }
+
+  async function getAllNonProxy(): Promise<CollectionEntry[]> {
+    return db.collection.filter(e => !e.isProxy).toArray()
   }
 
   async function count(): Promise<number> {
@@ -173,6 +177,7 @@ export function useCollection() {
     getByTag,
     getByStorage,
     getProxies,
+    getAllNonProxy,
     count,
     totalQuantity,
     parseTextList,

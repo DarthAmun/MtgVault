@@ -38,7 +38,7 @@ const { localGetCardByName, localGetCardBySetAndNumber } = useScryfall()
 
 const FORMATS = [
   'commander', 'standard', 'pioneer', 'modern', 'legacy',
-  'vintage', 'pauper', 'brawl', 'oathbreaker', 'other',
+  'vintage', 'pauper', 'brawl', 'oathbreaker', 'horde', 'other',
 ]
 
 const form = reactive({ name: '', format: 'commander', description: '', deckList: '' })
